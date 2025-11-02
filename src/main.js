@@ -1,17 +1,14 @@
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
-import createGallery from './js/render-functions.js';
 import getImagesByQuery from './js/pixabay-api.js';
-import { clearGallery } from './js/render-functions.js';
 import {
+  createGallery,
   showLoader,
   hideLoader,
   showLoadMoreButton,
   hideLoadMoreButton,
   loadBtn,
-  imgGallery,
-  lightbox,
-  formLoad,
+  clearGallery,
 } from './js/render-functions.js';
 
 const forma = document.querySelector('.form');
@@ -28,15 +25,14 @@ loadBtn.addEventListener('click', onLoadMore);
 async function onLoadMore() {
   page++;
   loadBtn.disabled = true;
-  loadBtn.replaceWith(formLoad);
+  hideLoadMoreButton();
   showLoader();
 
   try {
     const data = await getImagesByQuery(userChoice, page);
 
-    imgGallery.insertAdjacentHTML('beforeend', createGallery(data.hits));
-
-    lightbox.refresh();
+    createGallery(data.hits);
+    hideLoader();
 
     if (page * 15 < data.totalHits) {
       showLoadMoreButton();
@@ -61,18 +57,23 @@ async function onLoadMore() {
       behavior: 'smooth',
     });
   } catch (error) {
-    alert(error.message);
+    iziToast.error({
+      title: 'Error',
+      message: error.message,
+      color: 'red',
+      position: 'topRight',
+    });
   } finally {
     hideLoader();
-    formLoad.replaceWith(loadBtn);
     loadBtn.disabled = false;
   }
 }
 //creating gallery after submit event
-function handleSubmit(event) {
+async function handleSubmit(event) {
   event.preventDefault();
-  showLoader();
   clearGallery();
+  hideLoadMoreButton();
+  showLoader();
   page = 1;
 
   userChoice = formInput.value.trim().toLowerCase();
@@ -80,7 +81,7 @@ function handleSubmit(event) {
   if (!userChoice) {
     iziToast.warning({
       title: 'Caution',
-      message: 'Please select at least one item.',
+      message: 'Search field cannot be empty.',
       color: 'yellow',
       position: 'topRight',
     });
@@ -89,37 +90,48 @@ function handleSubmit(event) {
   }
 
   //сhecking if the array of images contains a tag equal to the user query
-  getImagesByQuery(userChoice, page)
-    .then(hit => {
-      const filteredHits = hit.hits.filter(hit =>
-        hit.tags.toLowerCase().split(', ').includes(userChoice)
-      );
-      //checking if array contains data
-      if (filteredHits.length === 0) {
-        iziToast.warning({
-          title: 'Caution',
-          message:
-            'Sorry, there are no images matching your search query. Please, try again!',
-          color: 'red',
-          position: 'topRight',
-        });
-        return;
-      }
+  try {
+    const hit = await getImagesByQuery(userChoice, page);
 
-      //gallery's visualisation function
-      imgGallery.innerHTML = createGallery(filteredHits);
-      lightbox.refresh();
-      showLoadMoreButton();
-    })
-    .catch(error =>
+    const filteredHits = hit.hits.filter(hit =>
+      hit.tags.toLowerCase().split(', ').includes(userChoice)
+    );
+
+    //checking if array contains data
+    if (filteredHits.length === 0) {
       iziToast.warning({
         title: 'Caution',
-        message: error.message,
+        message:
+          'Sorry, there are no images matching your search query. Please, try again!',
         color: 'red',
         position: 'topRight',
-      })
-    )
-    .finally(() => {
-      hideLoader();
+      });
+
+      hideLoadMoreButton();
+      return;
+    }
+
+    //gallery's visualisation function
+    createGallery(filteredHits);
+    if (page * 15 < hit.totalHits) {
+      showLoadMoreButton();
+    } else {
+      iziToast.warning({
+        title: 'Caution',
+        message:
+          'We are sorry, but you have reached the end of search results.',
+        color: 'yellow',
+        position: 'topRight',
+      });
+    }
+  } catch (error) {
+    iziToast.warning({
+      title: 'Caution',
+      message: error.message,
+      color: 'red',
+      position: 'topRight',
     });
+  } finally {
+    hideLoader();
+  }
 }

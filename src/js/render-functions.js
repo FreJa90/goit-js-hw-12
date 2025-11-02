@@ -14,8 +14,8 @@ export let lightbox = new SimpleLightbox('.gallery a', {
   className: 'lightbox',
 });
 
-export default function createGallery(array) {
-  return array
+export function createGallery(array) {
+  const markup = array
     .map(
       ({
         webformatURL,
@@ -38,6 +38,8 @@ export default function createGallery(array) {
     </li>`
     )
     .join(' ');
+  imgGallery.insertAdjacentHTML('beforeend', markup);
+  lightbox.refresh();
 }
 
 export function clearGallery() {
