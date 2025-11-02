@@ -17,8 +17,6 @@ let page = 1;
 let userChoice;
 
 forma.addEventListener('submit', handleSubmit);
-hideLoader();
-
 loadBtn.addEventListener('click', onLoadMore);
 
 //loading more img cards
@@ -30,13 +28,16 @@ async function onLoadMore() {
 
   try {
     const data = await getImagesByQuery(userChoice, page);
+    console.log(data);
 
-    createGallery(data.hits);
+    const filteredHits = data.hits.filter(hit =>
+      hit.tags.toLowerCase().includes(userChoice)
+    );
+
+    createGallery(filteredHits);
     hideLoader();
 
-    if (page * 15 < data.totalHits) {
-      showLoadMoreButton();
-    } else {
+    if (filteredHits.length < 15 || page * 15 >= data.totalHits) {
       hideLoadMoreButton();
       iziToast.warning({
         title: 'Caution',
@@ -45,6 +46,8 @@ async function onLoadMore() {
         color: 'yellow',
         position: 'topRight',
       });
+    } else {
+      showLoadMoreButton();
     }
 
     const card = document
@@ -91,14 +94,17 @@ async function handleSubmit(event) {
 
   //сhecking if the array of images contains a tag equal to the user query
   try {
-    const hit = await getImagesByQuery(userChoice, page);
+    const data = await getImagesByQuery(userChoice, page);
+    console.log(data);
 
-    const filteredHits = hit.hits.filter(hit =>
-      hit.tags.toLowerCase().split(', ').includes(userChoice)
+    const filteredHits = data.hits.filter(hit =>
+      hit.tags.toLowerCase().includes(userChoice)
     );
 
+    console.log(filteredHits);
     //checking if array contains data
     if (filteredHits.length === 0) {
+      hideLoadMoreButton();
       iziToast.warning({
         title: 'Caution',
         message:
@@ -107,15 +113,14 @@ async function handleSubmit(event) {
         position: 'topRight',
       });
 
-      hideLoadMoreButton();
       return;
     }
 
     //gallery's visualisation function
     createGallery(filteredHits);
-    if (page * 15 < hit.totalHits) {
-      showLoadMoreButton();
-    } else {
+
+    if (filteredHits.length < 15 || page * 15 >= data.totalHits) {
+      hideLoadMoreButton();
       iziToast.warning({
         title: 'Caution',
         message:
@@ -123,6 +128,8 @@ async function handleSubmit(event) {
         color: 'yellow',
         position: 'topRight',
       });
+    } else {
+      showLoadMoreButton();
     }
   } catch (error) {
     iziToast.warning({
