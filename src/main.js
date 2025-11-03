@@ -28,16 +28,13 @@ async function onLoadMore() {
 
   try {
     const data = await getImagesByQuery(userChoice, page);
-    console.log(data);
 
-    const filteredHits = data.hits.filter(hit =>
-      hit.tags.toLowerCase().includes(userChoice)
-    );
+    const filteredHits = data.hits;
 
     createGallery(filteredHits);
     hideLoader();
 
-    if (filteredHits.length < 15 || page * 15 >= data.totalHits) {
+    if (page * 15 >= data.totalHits) {
       hideLoadMoreButton();
       iziToast.warning({
         title: 'Caution',
@@ -95,18 +92,14 @@ async function handleSubmit(event) {
   //сhecking if the array of images contains a tag equal to the user query
   try {
     const data = await getImagesByQuery(userChoice, page);
-    console.log(data);
 
-    const filteredHits = data.hits.filter(hit =>
-      hit.tags.toLowerCase().includes(userChoice)
-    );
+    const userHits = data.hits;
 
-    console.log(filteredHits);
     //checking if array contains data
-    if (filteredHits.length === 0) {
+    if (data.totalHits === 0) {
       hideLoadMoreButton();
-      iziToast.warning({
-        title: 'Caution',
+      iziToast.error({
+        title: 'Error',
         message:
           'Sorry, there are no images matching your search query. Please, try again!',
         color: 'red',
@@ -117,9 +110,9 @@ async function handleSubmit(event) {
     }
 
     //gallery's visualisation function
-    createGallery(filteredHits);
+    createGallery(userHits);
 
-    if (filteredHits.length < 15 || page * 15 >= data.totalHits) {
+    if (page * 15 >= data.totalHits) {
       hideLoadMoreButton();
       iziToast.warning({
         title: 'Caution',
@@ -132,8 +125,8 @@ async function handleSubmit(event) {
       showLoadMoreButton();
     }
   } catch (error) {
-    iziToast.warning({
-      title: 'Caution',
+    iziToast.error({
+      title: 'Error',
       message: error.message,
       color: 'red',
       position: 'topRight',
